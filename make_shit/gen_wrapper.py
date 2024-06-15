@@ -110,6 +110,12 @@ void eval(void* state, const uint32_t *ins, uint32_t *outs){{
 {
     "\n".join(map(lambda a: f"    (outs[{a[0]}]) = (({class_name}*)state)->{a[1].name};", enumerate(out_ports)))
 }
+
+    // for(int i = 0; i < {len(in_ports) + len(out_ports)}; i++){{
+    //     printf("%s=%04X\\t", port_names[i], i < {len(in_ports)} ? ins[i] : outs[i - {len(in_ports)}]);
+    // }}
+    // printf("\\n");
+
 }}
 
 }}

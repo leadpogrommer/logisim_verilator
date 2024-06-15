@@ -8,6 +8,7 @@ class Components: Library() {
     private val tools = mutableListOf<Tool>(
         AddTool(VerilatorComponent("adder16", "/home/ilya/work/cdm_clang/verilog_shit/make_shit/build/adder16.so")),
         AddTool(VerilatorComponent("test", "/home/ilya/work/cdm_clang/verilog_shit/make_shit/build/test.so")),
+        AddTool(VerilatorComponent("ALU_epty", "/home/ilya/work/cdm_clang/verilog_shit/make_shit/build/ALU.so")),
     )
 
     override fun getTools(): MutableList<out Tool> {
