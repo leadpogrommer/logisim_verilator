@@ -21,6 +21,8 @@ class VerilatorModuleWrapper(path: String) {
 
     private val getPortNamesF = getF("get_port_names", ValueLayout.ADDRESS)
     private val getPortWidthsF = getF("get_port_widths", ValueLayout.ADDRESS)
+    private val getPortMetadataF = getF("get_port_metadata", ValueLayout.ADDRESS)
+    private val getPortPlacementF = getF("get_port_placement", ValueLayout.ADDRESS)
 
     init {
         initF.invoke()
@@ -51,19 +53,11 @@ class VerilatorModuleWrapper(path: String) {
     val outputPortCount: Int by lazy { getOutputPortCountF.invoke() as Int }
     val totalPorts = inputPortCount + outputPortCount
 
-    val portNames: List<String> by lazy {
-        val res = (getPortNamesF.invoke() as MemorySegment).reinterpret(totalPorts * ValueLayout.ADDRESS.byteSize())
-        (0 until (inputPortCount + outputPortCount)).map {
-            res.getAtIndex(ValueLayout.ADDRESS, it.toLong()).reinterpret(100).getString(0)
-        }
-    }
+    val portNames = callStringArrayFunction(getPortNamesF, totalPorts)
+    val portWidths = callIntArrayFunction(getPortWidthsF, totalPorts)
+    val portMetadata = callStringArrayFunction(getPortMetadataF, totalPorts)
+    val portPlacement = callIntArrayFunction(getPortPlacementF, totalPorts)
 
-    val portWidths: List<Int> by lazy {
-        val res = (getPortWidthsF.invoke() as MemorySegment).reinterpret(totalPorts * ValueLayout.JAVA_INT.byteSize())
-        (0 until (inputPortCount + outputPortCount)).map {
-            res.getAtIndex(ValueLayout.JAVA_INT, it.toLong())
-        }
-    }
 
 
     private fun getF(name: String, resLayout: MemoryLayout, vararg argsLayout: MemoryLayout): MethodHandle =
@@ -74,5 +68,19 @@ class VerilatorModuleWrapper(path: String) {
 
     override fun toString(): String {
         return "{inputs = ${(0 until inputPortCount).map { "${portNames[it]}[${portWidths[it]}]" }.joinToString(", ")}; outputs = ${(inputPortCount until totalPorts).map { "${portNames[it]}[${portWidths[it]}]" }.joinToString(", ")}}"
+    }
+
+    private fun callIntArrayFunction(f: MethodHandle, size: Int): List<Int> {
+        val res = (f.invoke() as MemorySegment).reinterpret(totalPorts * ValueLayout.JAVA_INT.byteSize())
+        return (0 until size).map {
+            res.getAtIndex(ValueLayout.JAVA_INT, it.toLong())
+        }
+    }
+
+    private fun callStringArrayFunction(f: MethodHandle, size: Int): List<String> {
+        val res = (f.invoke() as MemorySegment).reinterpret(totalPorts * ValueLayout.ADDRESS.byteSize())
+        return (0 until size).map {
+            res.getAtIndex(ValueLayout.ADDRESS, it.toLong()).reinterpret(100).getString(0)
+        }
     }
 }

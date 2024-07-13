@@ -1,15 +1,16 @@
 `timescale 1ns / 1ps
 
 module ALU(
-    input wire [15:0] A,
+    input wire [15:0] A /*!p:l*/,
     input wire [15:0] B,
-    input wire Cin,
-    input wire [2:0] op_type,
-    input wire [2:0] func,
-    input wire [2:0] shif_count_ni,
+    input wire Cin /*!p:t,t:Cin*/,
 
-    output wire [15:0] S,
-    output wire [3:0] CVZN
+    output wire [15:0] S /*!p:r*/,
+    output wire [3:0] CVZN,
+
+    input wire [2:0] op_type /*!p:b,t:op,s:30*/,
+    input wire [2:0] func /*!t:f*/,
+    input wire [2:0] shif_count_ni /*!t:shift*/
 );
 function automatic checkC(input [16:0] i);
     checkC = i[16];

@@ -1,10 +1,10 @@
 `timescale 1ns / 1ps
 
 module branch_logic(
-    input wire [3:0] cccc,
+    input wire [3:0] cccc /*!p:l*/,
     input wire [3:0] CVZN,
 
-    output wire go
+    output wire go /*!p:r*/
 );
     wire C, V, Z, N;
     reg dcsn;

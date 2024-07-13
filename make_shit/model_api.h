@@ -21,7 +21,8 @@ int get_output_port_count();
 
 char **get_port_names();
 int *get_port_widths();
-
+char **get_port_metadata();
+int *get_port_placement();
 
 
 #ifdef __cplusplus

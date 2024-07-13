@@ -1,21 +1,24 @@
 `timescale 1ns / 1ps
 
 module bus_control(
-    input wire reset,
-    input wire sign_extend,
+    input wire[15:0] from_bus /*!w:150,p:l*/,
+    output reg[15:0] to_bus,
+
+    output reg[15:0] data_out /*!p:r*/,
+    input wire[15:0] data_in,
+
+    input wire sign_extend /*!p:t*/,
     input wire odd_address,
     input wire word,
     input wire clk_no_inhibit,
 
-    input wire[15:0] from_bus,
-    input wire[15:0] data_in,
 
-    output reg[15:0] data_out,
-    output reg[15:0] to_bus,
 
+    output wire inc_address /*!p:b*/,
     output reg phase,
-    output wire inc_address,
-    output wire clk_inhibit
+    output wire clk_inhibit,
+
+    input wire reset
 );
 
     assign clk_inhibit = odd_address & word;
