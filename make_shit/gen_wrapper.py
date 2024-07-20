@@ -93,6 +93,8 @@ res_port_get_statements = []
 res_port_place_orders = []
 
 place_order_offset = 0
+in_po_offset = 0
+out_po_offset = 0
 
 for li, port in list(enumerate(in_ports)) + list(enumerate(out_ports)):
     arr_elems = [('', [])]
@@ -113,9 +115,13 @@ for li, port in list(enumerate(in_ports)) + list(enumerate(out_ports)):
         res_port_metadata.append(port.metadata if elem_num == 0 else '')
         res_port_place_orders.append(port.place_order + place_order_offset)
         if port.kind == 'IN':
-            res_port_set_statements.append(f"    (({class_name}*)state)->{name} = (uint{port.var_width}_t) (ins[{li}]);")
+            if elem_num != 0:
+                in_po_offset += 1
+            res_port_set_statements.append(f"    (({class_name}*)state)->{name} = (uint{port.var_width}_t) (ins[{li + in_po_offset}]);")
         elif port.kind == 'OUT':
-            res_port_get_statements.append(f"    (outs[{li}]) = (({class_name}*)state)->{name};")
+            if elem_num != 0:
+                out_po_offset += 1
+            res_port_get_statements.append(f"    (outs[{li + out_po_offset}]) = (({class_name}*)state)->{name};")
         else:
             print('Unknown port kind')
             exit(1)
