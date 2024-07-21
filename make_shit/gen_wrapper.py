@@ -135,6 +135,7 @@ res_code = f'''
 #include <verilated.h>
 // #include "verilated_vpi.h"
 #include "{in_header.split("/")[-1]}"
+#include <cstdio>
 
 #include "model_api.h"
 
@@ -189,6 +190,10 @@ int* get_port_placement(){{
 }}
 
 void eval(void* state, const uint32_t *ins, uint32_t *outs){{
+    if (!state){{
+        printf("State is  zero!\\n");
+        return;
+    }}
 {
     "\n".join(res_port_set_statements)
 }

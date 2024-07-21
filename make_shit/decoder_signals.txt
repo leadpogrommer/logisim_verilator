@@ -1,0 +1,21 @@
+---EXISTING---
+jsr
+rti
+int
+halt,wait,ei,di
+br_rel_nop
+shift_count_d
+arith_carry
+alu_func
+alu_op_type
+rs1, rd, rs0
+imm
+
+
+---NEW---
+ucode_inst
+
+
+
+---NOTES---
+include branch_logic

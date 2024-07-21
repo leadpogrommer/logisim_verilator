@@ -9,6 +9,6 @@ build/%.cpp: build/verilog_top_% gen_wrapper.py
 build/%.so: build/%.cpp model_api.h
 	gcc -shared -I/usr/share/verilator/include -Ibuild/verilog_top_$* -I.  -lstdc++ -latomic $< build/verilog_top_$*/libV$*.a build/verilog_top_$*/libverilated.a -o $@
 
-all_libs: build/adder16.so build/test.so
+all: build/decoder.so
 
 .SECONDARY:

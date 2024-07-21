@@ -28,14 +28,17 @@ class VerilatorModuleWrapper(path: String) {
         initF.invoke()
     }
 
+    @Synchronized
     fun createState(): MemorySegment {
         return createStateF.invoke() as MemorySegment
     }
 
+    @Synchronized
     fun destroyState(state: MemorySegment) {
         destroyStateF.invoke(state)
     }
 
+    @Synchronized
     fun eval(state: MemorySegment, ins: IntArray): IntArray {
         if(ins.size != inputPortCount){
             throw IllegalArgumentException("Invalid number of input ports: ${ins.size} instead of $inputPortCount")

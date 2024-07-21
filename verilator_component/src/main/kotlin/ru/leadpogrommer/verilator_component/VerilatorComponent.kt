@@ -21,6 +21,11 @@ class VerilatorInstanceData(val state: MemorySegment): InstanceData {
         TODO("cannot be implemented")
     }
 
+    protected fun finalize(){
+//        println("TODO: destroy state")
+
+    }
+
 }
 
 interface StringEnum{

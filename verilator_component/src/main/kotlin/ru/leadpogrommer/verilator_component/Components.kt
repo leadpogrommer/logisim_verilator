@@ -9,9 +9,9 @@ import kotlin.io.path.readText
 
 
 class Components: Library() {
-    val basDir = Path( System.getProperty("user.home"), ".config", "logisim_verilator_libs_path").readText().trim()
+//    val basDir = Path( System.getProperty("user.home"), ".config", "logisim_verilator_libs_path").readText().trim()
 
-    private val tooNamesLibs = mapOf("ALU_epty" to "ALU", "branch_logic" to "branch_logic", "bus_control" to "bus_control", "registers" to "registers")
+//    private val tooNamesLibs = mapOf("ALU_epty" to "ALU", "branch_logic" to "branch_logic", "bus_control" to "bus_control", "registers" to "registers", "decoder" to "decoder")
 //
 //    private val tools = mutableListOf<Tool>(
 //        AddTool(VerilatorComponent("ALU_epty", "/home/ilya/work/cdm_clang/verilog_shit/make_shit/build/ALU.so")),
@@ -20,13 +20,19 @@ class Components: Library() {
 //        AddTool(VerilatorComponent("registers", "/home/ilya/work/cdm_clang/verilog_shit/make_shit/build/registers.so")),
 //    )
 
-    private val tools = tooNamesLibs.map { (name, lib)  -> AddTool(VerilatorComponent(name, Path(basDir, "$lib.so").absolute().toString())) }
+//    private val tools = tooNamesLibs.map { (name, lib)  -> AddTool(VerilatorComponent(name, Path(basDir, "$lib.so").absolute().toString())) }
 
     override fun getTools(): List<Tool> {
-        return tools
+        return Components.tools
     }
 
     override fun getName(): String {
         return "Verilator Components"
+    }
+
+    companion object{
+        val basDir = Path( System.getProperty("user.home"), ".config", "logisim_verilator_libs_path").readText().trim()
+        private val tooNamesLibs = mapOf("ALU_epty" to "ALU", "branch_logic" to "branch_logic", "bus_control" to "bus_control", "registers" to "registers", "decoder" to "decoder")
+        private val tools = tooNamesLibs.map { (name, lib)  -> AddTool(VerilatorComponent(name, Path(basDir, "$lib.so").absolute().toString())) }
     }
 }
