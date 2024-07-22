@@ -105,6 +105,14 @@ assign _wait = (op_type_d0 == 4'b0101) && _0op && !exc_triggered;
 assign ei = (op_type_d0 == 4'b0110) && _0op && !exc_triggered;
 assign di = (op_type_d0 == 4'b0111) && _0op && !exc_triggered;
 
+// branches
+wire br_go;
+branch_logic branches(.cccc(br_abs_d ? br_abs_flags_D : br_rel_flags_d), .CVZN(CVZN), .go(br_go));
+wire br_abs = br_abs_d && br_go;
+wire br_abs_nop = br_abs_d && !br_abs;
+wire br_rel_n = br_rel_n_d && br_go;
+wire br_rel_p = br_rel_p_d && br_go;
+assign br_rel_nop = (br_rel_n_d && !br_rel_n) || (br_rel_p_d && ! br_rel_p);
 
 
 // imm calculation
