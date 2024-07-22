@@ -1,3 +1,5 @@
+`timescale 1ns / 1ps
+
 localparam UC_IMM_EXTEND_NEGATIVE = 5;
 localparam UC_IMM_SHIFT = 6;
 
@@ -5,11 +7,12 @@ localparam UC_IMM_SHIFT = 6;
 
 module decoder(
     // inputs
-    input wire [15:0] instruction /*!p:l*/,
+    input wire [15:0] instruction /*!w:200,p:l*/,
     input wire [3:0] CVZN,
     input wire [27:0] ucommand,
     input wire [2:0] phase,
     input wire exc_triggered,
+    input wire fetch,
 
 
     // outputs
@@ -32,7 +35,7 @@ module decoder(
 
     output wire [15:0] imm, // ok
 
-    output wire [9:0] ucode_addr,
+    output reg [9:0] ucode_addr,
 
     output wire ei,
     output wire di
@@ -76,7 +79,7 @@ assign shift_count_d = rs1_d;
 `IT(alu2, 2, (XY == 3));
 `IT(is_imm6, 3);
 `IT(is_imm9, 4);
-`IT(mem3, 5, (X));
+`IT(mem3, 5, (!X));
 `IT(alu3, 5, (X));
 `IT(br_rel_n_d, 6);
 `IT(br_rel_p_d, 7);
@@ -118,5 +121,44 @@ assign br_rel_nop = (br_rel_n_d && !br_rel_n) || (br_rel_p_d && ! br_rel_p);
 // imm calculation
 wire [15:0] imm_temp = is_imm6 ? {{10{ucommand[UC_IMM_EXTEND_NEGATIVE]}}, imm6_d} : {{7{ucommand[UC_IMM_EXTEND_NEGATIVE]}}, imm9_d};
 assign imm = _int ? (imm_temp << 2) | (phase[0] ? 16'd2 : 16'd0) : (imm_temp << ucommand[UC_IMM_SHIFT]);
+
+// ucode address calculation
+
+wire [7:0] extra_op_kind_candidates = {fetch, br_rel_nop | br_abs_nop, br_rel_n, br_rel_p, alu3, alu3_ind, alu2 | shifts, br_abs};
+
+reg [2:0] extra_op_kind;
+reg extra_op_kind_enabled;
+
+reg [2:0] op_kind;
+reg [7:0] op_kind_candidates;
+reg [3:0] op_type;
+
+always begin
+    extra_op_kind = 0;
+    extra_op_kind_enabled = 0;
+    for(integer i = 7; i >= 0; i--) begin
+        if (extra_op_kind_candidates[i]) begin
+            extra_op_kind_enabled = 1;
+            extra_op_kind = i[2:0];
+            break;
+        end
+    end
+
+    op_kind = 0;
+    op_kind_candidates = {extra_op_kind_enabled, mem3, is_imm9, is_imm6, mem2, _2op, _1op, _0op};
+    for(integer i = 7; i >= 0; i--) begin 
+        if(op_kind_candidates[i]) begin
+             op_kind = i[2:0];
+             break;
+        end
+    end
+
+     op_type =  (op_kind == 0) ? op_type_d0 : 
+                ((op_kind == 1) ? op_type_d1 : 
+                ((op_kind <= 3)? op_type_d2 : 
+                ((op_kind <= 6)? op_type_d3 : {1'b0, extra_op_kind})));
+
+    ucode_addr = {phase, op_kind, op_type};
+end
 
 endmodule
