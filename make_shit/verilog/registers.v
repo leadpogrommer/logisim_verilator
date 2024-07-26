@@ -1,3 +1,5 @@
+`timescale 1ns / 1ps
+
 module registers(
     input wire [2:0] rs0 /*!w:200,p:l*/,
     input wire [2:0] rs1,

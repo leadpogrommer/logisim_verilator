@@ -32,7 +32,7 @@ class Components: Library() {
 
     companion object{
         val basDir = Path( System.getProperty("user.home"), ".config", "logisim_verilator_libs_path").readText().trim()
-        private val tooNamesLibs = mapOf("ALU_epty" to "ALU", "branch_logic" to "branch_logic", "bus_control" to "bus_control", "registers" to "registers", "decoder" to "decoder")
+        private val tooNamesLibs = mapOf("ALU_epty" to "ALU", "branch_logic" to "branch_logic", "bus_control" to "bus_control", "registers" to "registers", "decoder" to "decoder", "cdm16" to "cdm16")
         private val tools = tooNamesLibs.map { (name, lib)  -> AddTool(VerilatorComponent(name, Path(basDir, "$lib.so").absolute().toString())) }
     }
 }

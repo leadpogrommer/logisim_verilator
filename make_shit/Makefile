@@ -1,7 +1,7 @@
 
 
 build/verilog_top_%: $(shell find verilog -type f)
-	verilator -CFLAGS "-fPIC" --cc --build --top-module $* -Mdir $@ $+
+	verilator -Iverilog/include -CFLAGS "-fPIC" --cc --build --top-module $* -Mdir $@ $+
 
 build/%.cpp: build/verilog_top_% gen_wrapper.py
 	python gen_wrapper.py $</V$*.h verilog/$*.v $@

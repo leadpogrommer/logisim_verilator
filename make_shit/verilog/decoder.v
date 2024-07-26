@@ -1,7 +1,6 @@
 `timescale 1ns / 1ps
 
-localparam UC_IMM_EXTEND_NEGATIVE = 5;
-localparam UC_IMM_SHIFT = 6;
+`include "common.vh"
 
 `define IT(NAME, T, COND=(1)) wire NAME = (inst_type == T) && COND
 

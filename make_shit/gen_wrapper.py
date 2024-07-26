@@ -35,6 +35,7 @@ with open(in_verilog, 'r') as f:
         port_placement_order[pname] = i
         port_metadata[pname] = metadata or ''
 
+print(f'Placement order: {port_placement_order}')
 
 
 @dataclass
