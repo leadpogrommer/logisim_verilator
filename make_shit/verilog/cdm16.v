@@ -19,7 +19,7 @@ module cdm16(
     output wire [9:0] ucode_addr,
 
     // real outputs
-    output reg [15:0] SP,
+    output wire [15:0] SP,
     output reg [15:0] PC,
     output reg [15:0] PS,
     output wire [15:0] address,
@@ -149,11 +149,14 @@ wire pc_inc_inhibit = exc_triggered ? virtual_instruction : br_rel_nop;
 wire pc_asrt_inc = jsr & ucommand[UC_PC_ASRTD];
 wire [15:0] pc_incremented = exc_triggered ? (PC - 2) : (PC + 2);
 wire [15:0] pc_value = pc_asrt_inc ? pc_incremented : PC;
+
+reg [15:0] realSP;
+assign SP = ucommand[UC_SP_DEC] ? realSP - 2 : realSP;
 always @(negedge clk) begin
     // SP
-    if (ucommand[UC_SP_INC]) SP += 2;
-    else if (ucommand[UC_SP_DEC]) SP -= 2;
-    else if (ucommand[UC_SP_LATCH]) SP = busD;
+    if (ucommand[UC_SP_INC]) realSP += 2;
+    else if (ucommand[UC_SP_DEC]) realSP -= 2;
+    else if (ucommand[UC_SP_LATCH]) realSP = busD;
 
     // PC
     if (ucommand[UC_PC_INC] & !pc_inc_inhibit) PC = pc_incremented;
@@ -177,7 +180,7 @@ always begin
 
     // bus1
     if (ucommand[UC_R_ASRT1]) bus1 = regs_bus1_out;
-    else if (ucommand[UC_IMM_ASRT1]) bus1 = regs_bus1_out;
+    else if (ucommand[UC_IMM_ASRT1]) bus1 = imm;
     else bus1 = 0;
 
     // busD

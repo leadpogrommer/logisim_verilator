@@ -50,6 +50,11 @@ data class PlacementSpec(val step: Int, val text: String?)
 
 data class TextSpec(val text: String, val x: Int, val y: Int, val halign: Int, val valign: Int)
 
+fun Value.toIntNoError(): Int {
+    if(this.isFullyDefined) return this.toIntValue()
+    return 0;
+}
+
 class VerilatorComponent(name: String, path: String): InstanceFactory(name) {
     private val lib = VerilatorModuleWrapper(path)
     private val labels = mutableListOf<TextSpec>()
@@ -166,7 +171,7 @@ class VerilatorComponent(name: String, path: String): InstanceFactory(name) {
             state.data = VerilatorInstanceData(lib.createState())
         }
 
-        val ins = (0 until lib.inputPortCount).map { state.getPort(lib.portPlacement[it]).toIntValue() }.toIntArray()
+        val ins = (0 until lib.inputPortCount).map { state.getPort(lib.portPlacement[it]).toIntNoError() }.toIntArray()
         val res = lib.eval( (state.data as VerilatorInstanceData).state, ins)
 
         for (i in 0 until lib.outputPortCount) {
