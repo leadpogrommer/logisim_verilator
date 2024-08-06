@@ -25,23 +25,15 @@ module bus_control(
     assign inc_address = phase;
 
     reg[7:0] dataTempRegister;
-    reg must_turn_off_phase;
 
     always @(negedge clk_no_inhibit) begin
         if (reset) begin
             phase = 0;
             dataTempRegister = 8'd0;
-            must_turn_off_phase = 0;
         end else begin 
-            if (clk_inhibit) phase = 1;
-            else if (phase && !clk_inhibit) must_turn_off_phase = 1;
-            // phase = clk_inhibit;
+            phase = clk_inhibit;
             if (clk_inhibit) dataTempRegister = data_in[7:0];
         end
-    end
-
-    always @(posedge clk_no_inhibit) begin
-        if (must_turn_off_phase) phase = 0;    
     end
 
 

@@ -118,11 +118,11 @@ for li, port in list(enumerate(in_ports)) + list(enumerate(out_ports)):
         if port.kind == 'IN':
             if elem_num != 0:
                 in_po_offset += 1
-            res_port_set_statements.append(f"    (({class_name}*)state)->{name} = (uint{port.var_width}_t) (ins[{li + in_po_offset}]);")
+            res_port_set_statements.append(f"    ms->{name} = (uint{port.var_width}_t) (ins[{li + in_po_offset}]);")
         elif port.kind == 'OUT':
             if elem_num != 0:
                 out_po_offset += 1
-            res_port_get_statements.append(f"    (outs[{li + out_po_offset}]) = (({class_name}*)state)->{name};")
+            res_port_get_statements.append(f"    (outs[{li + out_po_offset}]) = ms->{name};")
         else:
             print('Unknown port kind')
             exit(1)
@@ -134,6 +134,7 @@ for li, port in list(enumerate(in_ports)) + list(enumerate(out_ports)):
 
 res_code = f'''
 #include <verilated.h>
+#include "verilated_vcd_c.h"
 // #include "verilated_vpi.h"
 #include "{in_header.split("/")[-1]}"
 #include <cstdio>
@@ -146,17 +147,33 @@ static VerilatedContext *contextp;
 
 void init(){{
     contextp = new VerilatedContext;
+    Verilated::traceEverOn(true);
 }}
 
 void deinit(){{
     delete contextp;
 }}
 
-void* create_state(){{
-    return (void*)(new {class_name}{{contextp}});
+struct state_t {{
+    {class_name}* model_state;
+    VerilatedVcdC* tfp;
+}};
+
+state_t* create_state(){{
+    // printf("Creating state\\n");
+    auto* state = new state_t{{new {class_name}{{contextp}}, new VerilatedVcdC}};
+    state->model_state->trace(state->tfp, 99);
+    state->tfp->open("/tmp/verilog_trace.vcd");
+    return state;
 }}
-void destroy_state(void* state){{
-    delete (({class_name} *) state);
+void destroy_state(state_t* state){{
+    state->tfp->close();
+
+    delete state->model_state;
+    delete state-> tfp;
+    delete state;
+
+    // printf("Destroyed state\\n");
 }}
 
 
@@ -190,15 +207,19 @@ int* get_port_placement(){{
     return port_placement; 
 }}
 
-void eval(void* state, const uint32_t *ins, uint32_t *outs){{
+void eval(state_t* state, const uint32_t *ins, uint32_t *outs){{
     if (!state){{
         printf("State is  zero!\\n");
         return;
     }}
+    auto ms = state->model_state;
+
 {
     "\n".join(res_port_set_statements)
 }
-    (({class_name}*)state)->eval();
+    contextp->timeInc(1);
+    ms->eval();
+    state->tfp->dump(contextp->time());
 {
     "\n".join(res_port_get_statements)
 }

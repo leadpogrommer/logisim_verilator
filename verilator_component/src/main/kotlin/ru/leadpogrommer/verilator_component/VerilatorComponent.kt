@@ -14,8 +14,12 @@ import java.lang.foreign.MemorySegment
 import kotlin.math.max
 
 
-class VerilatorInstanceData(val state: MemorySegment): InstanceData {
-
+class VerilatorInstanceData(val lib: VerilatorModuleWrapper, val state: MemorySegment): InstanceData {
+    init {
+        Runtime.getRuntime().addShutdownHook(Thread{
+            lib.destroyState(state)
+        })
+    }
 
     override fun clone(): Any {
         TODO("cannot be implemented")
@@ -23,7 +27,7 @@ class VerilatorInstanceData(val state: MemorySegment): InstanceData {
 
     protected fun finalize(){
 //        println("TODO: destroy state")
-
+//        lib.destroyState(state)
     }
 
 }
@@ -168,7 +172,7 @@ class VerilatorComponent(name: String, path: String): InstanceFactory(name) {
         }
 
         if(state.data == null){
-            state.data = VerilatorInstanceData(lib.createState())
+            state.data = VerilatorInstanceData(lib, lib.createState())
         }
 
         val ins = (0 until lib.inputPortCount).map { state.getPort(lib.portPlacement[it]).toIntNoError() }.toIntArray()

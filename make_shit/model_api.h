@@ -4,16 +4,16 @@
 extern "C" {
 #endif
 
-
+struct state_t;
 
 void init();
 void deinit();
 
-void* create_state();
-void destroy_state(void *state);
+state_t* create_state();
+void destroy_state(state_t *state);
 
 // inputs + outputs
-void eval(void* state, const uint32_t *ins, uint32_t *outs);
+void eval(state_t* state, const uint32_t *ins, uint32_t *outs);
 
 
 int get_input_port_count();

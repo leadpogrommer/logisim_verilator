@@ -8,20 +8,7 @@ import kotlin.io.path.absolute
 import kotlin.io.path.readText
 
 
-class Components: Library() {
-//    val basDir = Path( System.getProperty("user.home"), ".config", "logisim_verilator_libs_path").readText().trim()
-
-//    private val tooNamesLibs = mapOf("ALU_epty" to "ALU", "branch_logic" to "branch_logic", "bus_control" to "bus_control", "registers" to "registers", "decoder" to "decoder")
-//
-//    private val tools = mutableListOf<Tool>(
-//        AddTool(VerilatorComponent("ALU_epty", "/home/ilya/work/cdm_clang/verilog_shit/make_shit/build/ALU.so")),
-//        AddTool(VerilatorComponent("branch_logic", "/home/ilya/work/cdm_clang/verilog_shit/make_shit/build/branch_logic.so")),
-//        AddTool(VerilatorComponent("bus_control", "/home/ilya/work/cdm_clang/verilog_shit/make_shit/build/bus_control.so")),
-//        AddTool(VerilatorComponent("registers", "/home/ilya/work/cdm_clang/verilog_shit/make_shit/build/registers.so")),
-//    )
-
-//    private val tools = tooNamesLibs.map { (name, lib)  -> AddTool(VerilatorComponent(name, Path(basDir, "$lib.so").absolute().toString())) }
-
+class Components : Library() {
     override fun getTools(): List<Tool> {
         return Components.tools
     }
@@ -30,9 +17,23 @@ class Components: Library() {
         return "Verilator Components"
     }
 
-    companion object{
-        val basDir = Path( System.getProperty("user.home"), ".config", "logisim_verilator_libs_path").readText().trim()
-        private val tooNamesLibs = mapOf("ALU_epty" to "ALU", "branch_logic" to "branch_logic", "bus_control" to "bus_control", "registers" to "registers", "decoder" to "decoder", "cdm16" to "cdm16")
-        private val tools = tooNamesLibs.map { (name, lib)  -> AddTool(VerilatorComponent(name, Path(basDir, "$lib.so").absolute().toString())) }
+    companion object {
+        val baseDir = Path(System.getProperty("user.home"), ".config", "logisim_verilator_libs_path").readText().trim()
+        private val tooNamesLibs = mapOf(
+            "ALU_epty" to "ALU",
+            "branch_logic" to "branch_logic",
+            "bus_control" to "bus_control",
+            "registers" to "registers",
+            "decoder" to "decoder",
+            "cdm16" to "cdm16"
+        )
+        private val tools = tooNamesLibs.map { (name, lib) ->
+            AddTool(
+                VerilatorComponent(
+                    name,
+                    Path(baseDir, "$lib.so").absolute().toString()
+                )
+            )
+        }
     }
 }

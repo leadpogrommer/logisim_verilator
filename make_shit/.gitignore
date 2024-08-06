@@ -1,2 +1,6 @@
 /build
 /.idea
+/hs_err_pid*.log
+/build_asm
+/*.img
+/*.asm

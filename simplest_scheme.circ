@@ -77,15 +77,15 @@
       <a name="valign" val="base"/>
     </tool>
   </lib>
-  <lib desc="jar#/home/ilya/work/24_ordynsk_prikoly/cdm/logisim_verilator/devkit-release/jar/logisim-banked-memory-0.2.0.jar#org.cdm.logisim.memory.Components" name="7">
+  <lib desc="jar#devkit-release/jar/logisim-banked-memory-0.2.0.jar#org.cdm.logisim.memory.Components" name="7">
     <tool name="ROM">
       <a name="contents">addr/data: 8 8
 0
 </a>
     </tool>
   </lib>
-  <lib desc="jar#/home/ilya/work/24_ordynsk_prikoly/cdm/logisim_verilator/devkit-release/jar/logisim-cdm-emulator-0.2.0.jar#org.cdm.logisim.emulator.Components" name="8"/>
-  <lib desc="jar#/home/ilya/work/24_ordynsk_prikoly/cdm/logisim_verilator/devkit-release/jar/logisim-debugger-0.2.0.jar#org.cdm.logisim.debugger.Components" name="9"/>
+  <lib desc="jar#devkit-release/jar/logisim-cdm-emulator-0.2.0.jar#org.cdm.logisim.emulator.Components" name="8"/>
+  <lib desc="jar#devkit-release/jar/logisim-debugger-0.2.0.jar#org.cdm.logisim.debugger.Components" name="9"/>
   <lib desc="file#cdm16_verilog.circ" name="10"/>
   <main name="main"/>
   <options>
