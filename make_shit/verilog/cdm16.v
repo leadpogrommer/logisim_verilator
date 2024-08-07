@@ -2,6 +2,8 @@
 
 `include "common.vh"
 
+// TODO: fix unaligned PC&SP exceptions
+
 module cdm16(
     input wire [15:0] dummy_instruction /*!w:200*/,
     output wire dbg_CUT,
@@ -173,8 +175,8 @@ always @(negedge input_clock) begin
     // clk_no_inhibit
     if (clk_no_inhibit_active) begin
         // exceptions
-        exc_trig_sp <= busD[0] && ucommand[UC_SP_LATCH]; 
-        exc_trig_pc <= busD[0] && ucommand[UC_PC_LATCH];
+        exc_trig_sp <= busD[0] && ucommand[UC_SP_LATCH]; // TODO: this is probably wrong
+        exc_trig_pc <= busD[0] && ucommand[UC_PC_LATCH]; // TODO: this is probably wrong
 
 
         if (exc_trig_ext) exc_vec <= direct_exc_vec;
