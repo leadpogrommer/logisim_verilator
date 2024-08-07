@@ -144,6 +144,7 @@ res_code = f'''
 extern "C" {{
 
 static VerilatedContext *contextp;
+static unsigned long ticks_passed = 0;
 
 void init(){{
     contextp = new VerilatedContext;
@@ -217,9 +218,9 @@ void eval(state_t* state, const uint32_t *ins, uint32_t *outs){{
 {
     "\n".join(res_port_set_statements)
 }
-    contextp->timeInc(1);
+    // contextp->timeInc(1);
     ms->eval();
-    state->tfp->dump(contextp->time());
+    state->tfp->dump(ticks_passed++);
 {
     "\n".join(res_port_get_statements)
 }

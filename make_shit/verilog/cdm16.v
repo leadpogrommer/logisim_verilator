@@ -3,16 +3,16 @@
 `include "common.vh"
 
 module cdm16(
-    input wire [15:0] instruction /*!w:200*/,
-    input wire [27:0] ucommand,
-    input wire [2:0] phase,
-    input wire exc_triggered,
-    input wire virtual_instruction,
-    input wire fetch,
+    input wire [15:0] dummy_instruction /*!w:200*/,
+    output wire dbg_CUT,
+    output wire [2:0] dbg_phase,
+    input wire dummy_exc_triggered,
+    input wire dummy_virt_instr,
+    output wire dbg_fetch,
     input wire input_clock,
     input wire in_hold,
     input wire in_irq,
-    input wire critical_fault,
+    input wire dummy_critical_fault,
 
     output wire rti,
     output wire _int,
@@ -39,6 +39,19 @@ module cdm16(
     output wire clk,
     output wire clk_no_inhibit,
     output reg [1:0] status,
+
+
+    output wire dbg_startup,
+
+    input wire [27:0] uc_in_normal,
+    input wire [27:0] uc_in_exception,
+    input wire [5:0] direct_exc_vec,
+    input wire exc_trig_ext,
+
+    output wire IAck,
+    input wire [5:0] int_vec,
+
+
     output reg [15:0] regs /*!p:t,t:registers,s:20*/ [7:0]  // TODO: fix array in the middle of port list
 
 );
@@ -47,6 +60,7 @@ wire [3:0] ps_flags = PS[3:0];
 reg [15:0] bus0; // TODO
 reg [15:0] bus1; // TODO
 // wire [15:0] busD; // TODO
+// reg [15:0] busD_noregs; // busD without PC or SP. hack to avoid circular combinational logic
 
 
 // decoder outputs
@@ -91,24 +105,6 @@ decoder decoder_inst (
     );
 
 
-// wire [15:0] regs_bus0_out;
-// wire [15:0] regs_bus1_out;
-// wire [15:0] regs_busD_out;
-// registers registers_inst(
-//     .rs0,
-//     .rs1,
-//     .rd,
-//     .r_latch(ucommand[UC_RLATCH]),
-//     .clk,
-//     .busD_in(busD),
-
-//     .bus0(regs_bus0_out),
-//     .bus1(regs_bus1_out),
-//     .busD_out(regs_busD_out),
-//     .regs
-// );
-
-
 wire inc_address;
 wire [15:0] alu_out;
 wire [3:0] alu_out_CVZN;
@@ -150,24 +146,6 @@ reg [7:0] bus_control_tmp;
 reg [15:0] bus_control_out_to_bus;
 
 
-
-
-// bus_control bus_control_inst(
-//     .from_bus(busD),
-//     .to_bus(bus_control_out_to_bus),
-//     .data_out,
-//     .data_in,
-//     .sign_extend(ucommand[UC_SIGN_EXTEND]),
-//     .odd_address(address[0]),
-//     .word(ucommand[UC_WORD]),
-//     .clk_no_inhibit,
-
-//     .inc_address,
-//     .phase(io_phase),
-//     .clk_inhibit,
-//     .reset(0) // TODO: reset
-// );
-
 wire pc_inc_inhibit = exc_triggered ? virtual_instruction : br_rel_nop;
 
 wire pc_asrt_inc = jsr & ucommand[UC_PC_ASRTD];
@@ -176,52 +154,77 @@ wire [15:0] pc_value = pc_asrt_inc ? pc_incremented : PC;
 
 reg [15:0] realSP;
 assign SP = ucommand[UC_SP_DEC] ? realSP - 2 : realSP;
+
+/* verilator lint_off MULTIDRIVEN */
+always @(posedge fetch) begin
+    instruction <= 0;
+end
+
 always @(negedge input_clock) begin
-    clk_hold = in_hold;
+    clk_hold <= in_hold;
 
-    if(_wait) clk_wait = 1;
-    if(in_irq) clk_wait = 0;
+    if(_wait) clk_wait <= 1;
+    if(in_irq) clk_wait <= 0;
 
-    if(halt) clk_halt = 1;
+    if(halt) clk_halt <= 1;
 
-    if(critical_fault) clk_critical_fault = 1;
+    if(critical_fault) clk_critical_fault <= 1;
 
-    // bus_logic here
+    // clk_no_inhibit
     if (clk_no_inhibit_active) begin
-        io_phase = clk_inhibit;
-        if (io_phase) bus_control_tmp = data_in[7:0];
+        // exceptions
+        exc_trig_sp <= busD[0] && ucommand[UC_SP_LATCH]; 
+        exc_trig_pc <= busD[0] && ucommand[UC_PC_LATCH];
+
+
+        if (exc_trig_ext) exc_vec <= direct_exc_vec;
+        if (has_any_reason_to_fault) begin
+            if (latch_double_fault) exc_intenral_vec <= 4;
+            else if (exc_trig_ext) exc_intenral_vec <= 7;
+            else if (exc_trig_invalid_inst) exc_intenral_vec <= 3;
+            else if (exc_trig_pc) exc_intenral_vec <= 2;
+            else if (exc_trig_sp) exc_intenral_vec <= 1;
+        end
+
+        if (fetch) virtual_instruction <= latch_int || startup;
+        if (fetch) instruction <= fetched_instruction;
+
+        if (has_any_reason_to_fault) exc_latch <= 1;
+        if (reset_exc) exc_latch <= 0;
+
+        // bus control
+        io_phase <= clk_inhibit;
+        if (clk_inhibit) bus_control_tmp <= data_in[7:0];
     end
 
 
 
     if (clk_no_inhibit_active & (!clk_inhibit)) begin
-        if (ucommand[UC_PC_LATCH]) PC = busD;
+        // fething and exceptions
 
-        if (ucommand[UC_SP_LATCH]) realSP = busD;
+        if (CUT) phase <= 0;
+        else phase <= phase + 1;
 
-        // SP
-        // if (ucommand[UC_SP_INC]) realSP += 2;
-        // else if (ucommand[UC_SP_DEC]) realSP -= 2;
-        // else if (ucommand[UC_SP_LATCH]) realSP = busD;
-
-        // // PC
-        // if (ucommand[UC_PC_INC] & !pc_inc_inhibit) PC = pc_incremented;
-        // else if (ucommand[UC_PC_LATCH]) PC = busD;
-
-        // PS
-        if (ucommand[UC_PS_LATCH_WORD]) PS = busD;
-        else if (ei) PS[15] = 1;
-        else if(di) PS[15] = 0;
-        else if(ucommand[UC_PS_LATCH_FLAGS]) PS[3:0] = alu_out_CVZN;
+        if (CUT) cut_something <= !cut_something;
 
         // regs
-        if (ucommand[UC_RLATCH]) regs[rd] = busD;
+        if (ucommand[UC_PC_LATCH]) PC <= busD;
 
-        if (ucommand[UC_PC_INC] & !pc_inc_inhibit) PC = pc_incremented;
+        if (ucommand[UC_SP_LATCH]) realSP <= busD;
 
-        if (ucommand[UC_SP_INC]) realSP += 2;
-        if (ucommand[UC_SP_DEC]) realSP -= 2;
+        if (ucommand[UC_PS_LATCH_WORD]) PS <= busD;
+        else if (ei) PS[15] <= 1;
+        else if(di) PS[15] <= 0;
+        else if(ucommand[UC_PS_LATCH_FLAGS]) PS[3:0] <= alu_out_CVZN;
 
+        if (ucommand[UC_RLATCH]) regs[rd] <= busD;
+
+        if (ucommand[UC_PC_INC] & !pc_inc_inhibit) PC <= pc_incremented;
+
+        if (ucommand[UC_SP_INC]) realSP <= realSP + 2;
+        if (ucommand[UC_SP_DEC]) realSP <= realSP - 2;
+
+        if (startup && CUT) not_startup <= 1;
     end
 end
 
@@ -271,5 +274,49 @@ always begin
 end
 
 assign int_en = PS[15];
+
+
+// exceptions & instruction fetching
+wire CUT = ucommand[UC_CUT];
+reg [2:0] phase;
+reg cut_something;
+reg not_startup;
+wire startup = !not_startup;
+wire fetch = (!cut_something) && (phase == 0);
+wire latch_int = exc_triggered || (in_irq && int_en);
+assign IAck = fetch && (in_irq && int_en);
+wire reset_exc = exc_triggered && fetch;
+wire double_fault = instruction == 16'h8004;
+wire exc_triggered = has_any_reason_to_fault || exc_latch;
+wire critical_fault = double_fault && has_any_reason_to_fault;
+wire [27:0] ucommand /*verilator split_var*/ = status[1] || startup || (latch_int && fetch) ? 28'h8000000 : (exc_triggered ? uc_in_exception : uc_in_normal);
+
+reg [5:0] exc_vec;
+reg [2:0] exc_intenral_vec;
+reg exc_latch;
+reg virtual_instruction;
+reg [15:0] instruction;
+
+
+wire exc_trig_invalid_inst = !exc_latch && (uc_in_normal == 0);
+
+reg exc_trig_sp;// = busD[0] && ucommand[UC_SP_LATCH]; 
+reg exc_trig_pc; // = busD[0] && ucommand[UC_PC_LATCH];
+
+wire has_any_reason_to_fault = exc_trig_sp || exc_trig_pc || exc_trig_invalid_inst || exc_trig_ext;
+wire latch_double_fault = (rti || _int) || (exc_trig_ext && (exc_trig_sp || exc_trig_pc || exc_trig_invalid_inst)) || (exc_latch && has_any_reason_to_fault);
+wire [15:0] exc_instruction = 16'h8000 | (!exc_triggered ? {10'd0, int_vec}: (
+    exc_trig_ext ? (
+        latch_double_fault ? 16'h4 : {10'd0, direct_exc_vec}
+    ) : (
+        exc_intenral_vec == 7 ? {10'd0, exc_vec} : {13'd0, exc_intenral_vec}
+    )
+));
+wire [15:0] fetched_instruction = startup ? 16'h8200 : (latch_int ? exc_instruction: busD);
+
+
+assign dbg_phase = phase;
+assign dbg_startup = startup;
+assign dbg_fetch = fetch;
 
 endmodule
