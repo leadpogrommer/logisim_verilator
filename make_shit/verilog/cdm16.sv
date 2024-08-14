@@ -1,25 +1,15 @@
 `timescale 1ns / 1ps
 
-`include "common.vh"
+`include "common.sv"
 
 // TODO: fix unaligned PC&SP exceptions
 
 module cdm16(
-    input wire [15:0] dummy_instruction /*!w:200*/,
-    output wire dbg_CUT,
-    output wire [2:0] dbg_phase,
-    input wire dummy_exc_triggered,
-    input wire dummy_virt_instr,
-    output wire dbg_fetch,
+    output wire dbg_fetch /*!w:200*/,
     input wire input_clock,
     input wire in_hold,
     input wire in_irq,
-    input wire dummy_critical_fault,
 
-    output wire rti,
-    output wire _int,
-    output wire halt,
-    output wire _wait,
     output wire [9:0] ucode_addr,
 
     // real outputs
@@ -31,19 +21,15 @@ module cdm16(
     output wire data,
     output wire read,
     output wire word,
-    output wire [15:0] data_out,
+    output reg [15:0] data_out,
     input wire [15:0] data_in,
 
-    output reg [15:0] busD,
 
     output wire int_en,
 
     output wire clk,
     output wire clk_no_inhibit,
     output reg [1:0] status,
-
-
-    output wire dbg_startup,
 
     input wire [27:0] uc_in_normal,
     input wire [27:0] uc_in_exception,
@@ -107,6 +93,17 @@ decoder decoder_inst (
     );
 
 
+wire [27:0] ucommand /*verilator split_var*/;
+wire critical_fault;
+reg exc_trig_sp;// = busD[0] && ucommand[UC_SP_LATCH]; 
+reg exc_trig_pc; // = busD[0] && ucommand[UC_PC_LATCH];
+wire has_any_reason_to_fault;
+wire rti;
+wire _int;
+wire _wait;
+wire halt;
+reg [15:0] busD;
+
 wire inc_address;
 wire [15:0] alu_out;
 wire [3:0] alu_out_CVZN;
@@ -123,21 +120,31 @@ ALU ALU_inst(
 );
 
 
-reg io_phase;
-assign inc_address = io_phase;
-assign mem = ucommand[UC_MEM];
-assign data = ucommand[UC_DATA];
-assign read = ucommand[UC_READ];
-assign word = ucommand[UC_WORD] & !(io_phase | clk_inhibit);
-assign address = alu_out;
-
-
 // clock control
 reg clk_hold;
 reg clk_wait;
 reg clk_halt;
 reg clk_critical_fault;
 wire clk_inhibit = address[0] & ucommand[UC_WORD];
+
+reg io_phase;
+assign inc_address = io_phase;
+assign mem = ucommand[UC_MEM];
+assign data = ucommand[UC_DATA];
+assign read = ucommand[UC_READ];
+assign address = alu_out;
+assign word = ucommand[UC_WORD] & !(io_phase | clk_inhibit);
+wire fetch;
+
+
+reg [5:0] exc_vec;
+reg [2:0] exc_intenral_vec;
+reg exc_latch;
+reg virtual_instruction;
+// verilator lint_off MULTIDRIVEN
+reg [15:0] instruction;
+
+
 
 wire clk_no_inhibit_active = !(clk_hold | clk_wait | clk_halt | clk_critical_fault);
 assign clk_no_inhibit = clk_no_inhibit_active & input_clock;
@@ -147,7 +154,7 @@ assign clk = clk_no_inhibit && (!clk_inhibit);
 reg [7:0] bus_control_tmp;
 reg [15:0] bus_control_out_to_bus;
 
-
+wire exc_triggered;
 wire pc_inc_inhibit = exc_triggered ? virtual_instruction : br_rel_nop;
 
 wire pc_asrt_inc = jsr & ucommand[UC_PC_ASRTD];
@@ -157,11 +164,53 @@ wire [15:0] pc_value = pc_asrt_inc ? pc_incremented : PC;
 reg [15:0] realSP;
 assign SP = ucommand[UC_SP_DEC] ? realSP - 2 : realSP;
 
+
+
+assign int_en = PS[15];
+
+
+// exceptions & instruction fetching
+wire CUT = ucommand[UC_CUT];
+reg [2:0] phase;
+reg cut_something;
+reg not_startup;
+wire startup = !not_startup;
+assign fetch = (!cut_something) && (phase == 0);
+assign exc_triggered = has_any_reason_to_fault || exc_latch;
+wire latch_int = exc_triggered || (in_irq && int_en);
+assign IAck = fetch && (in_irq && int_en);
+wire reset_exc = exc_triggered && fetch;
+wire double_fault = instruction == 16'h8004;
+assign critical_fault = double_fault && has_any_reason_to_fault;
+assign ucommand = status[1] || startup || (latch_int && fetch) ? 28'h8000000 : (exc_triggered ? uc_in_exception : uc_in_normal);
+
+
+
+wire exc_trig_invalid_inst = !exc_latch && (uc_in_normal == 0);
+
+
+
+assign has_any_reason_to_fault = exc_trig_sp || exc_trig_pc || exc_trig_invalid_inst || exc_trig_ext;
+wire latch_double_fault = (rti || _int) || (exc_trig_ext && (exc_trig_sp || exc_trig_pc || exc_trig_invalid_inst)) || (exc_latch && has_any_reason_to_fault);
+wire [15:0] exc_instruction = 16'h8000 | (!exc_triggered ? {10'd0, int_vec}: (
+    exc_trig_ext ? (
+        latch_double_fault ? 16'h4 : {10'd0, direct_exc_vec}
+    ) : (
+        exc_intenral_vec == 7 ? {10'd0, exc_vec} : {13'd0, exc_intenral_vec}
+    )
+));
+wire [15:0] fetched_instruction = startup ? 16'h8200 : (latch_int ? exc_instruction: busD);
+
+
+assign dbg_fetch = fetch;
+
+// verilator lint_off MULTIDRIVEN
 /* verilator lint_off MULTIDRIVEN */
 always @(posedge fetch) begin
     instruction <= 0;
 end
 
+/* verilator lint_off MULTIDRIVEN */
 always @(negedge input_clock) begin
     clk_hold <= in_hold;
 
@@ -274,51 +323,5 @@ always begin
     else data_out = busD;
     
 end
-
-assign int_en = PS[15];
-
-
-// exceptions & instruction fetching
-wire CUT = ucommand[UC_CUT];
-reg [2:0] phase;
-reg cut_something;
-reg not_startup;
-wire startup = !not_startup;
-wire fetch = (!cut_something) && (phase == 0);
-wire latch_int = exc_triggered || (in_irq && int_en);
-assign IAck = fetch && (in_irq && int_en);
-wire reset_exc = exc_triggered && fetch;
-wire double_fault = instruction == 16'h8004;
-wire exc_triggered = has_any_reason_to_fault || exc_latch;
-wire critical_fault = double_fault && has_any_reason_to_fault;
-wire [27:0] ucommand /*verilator split_var*/ = status[1] || startup || (latch_int && fetch) ? 28'h8000000 : (exc_triggered ? uc_in_exception : uc_in_normal);
-
-reg [5:0] exc_vec;
-reg [2:0] exc_intenral_vec;
-reg exc_latch;
-reg virtual_instruction;
-reg [15:0] instruction;
-
-
-wire exc_trig_invalid_inst = !exc_latch && (uc_in_normal == 0);
-
-reg exc_trig_sp;// = busD[0] && ucommand[UC_SP_LATCH]; 
-reg exc_trig_pc; // = busD[0] && ucommand[UC_PC_LATCH];
-
-wire has_any_reason_to_fault = exc_trig_sp || exc_trig_pc || exc_trig_invalid_inst || exc_trig_ext;
-wire latch_double_fault = (rti || _int) || (exc_trig_ext && (exc_trig_sp || exc_trig_pc || exc_trig_invalid_inst)) || (exc_latch && has_any_reason_to_fault);
-wire [15:0] exc_instruction = 16'h8000 | (!exc_triggered ? {10'd0, int_vec}: (
-    exc_trig_ext ? (
-        latch_double_fault ? 16'h4 : {10'd0, direct_exc_vec}
-    ) : (
-        exc_intenral_vec == 7 ? {10'd0, exc_vec} : {13'd0, exc_intenral_vec}
-    )
-));
-wire [15:0] fetched_instruction = startup ? 16'h8200 : (latch_int ? exc_instruction: busD);
-
-
-assign dbg_phase = phase;
-assign dbg_startup = startup;
-assign dbg_fetch = fetch;
 
 endmodule

@@ -28,13 +28,14 @@ endfunction
     wire N;
     assign CVZN[3:0] = {C, V, Z, N};
 
+    wire [16:0] wA = {1'd0, A};
+    wire [16:0] wB = {1'd0, B};
+    reg  [16:0] wS;
+    
     assign Z = S == 16'd0;
     assign N = S[15];
     assign S = wS[15:0];
 
-    wire [16:0] wA = {1'd0, A};
-    wire [16:0] wB = {1'd0, B};
-    reg  [16:0] wS;
 
     wire [4:0] wShiftCount = 5'd1 + {2'b0, shif_count_ni};
 

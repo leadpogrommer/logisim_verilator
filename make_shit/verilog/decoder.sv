@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-`include "common.vh"
+`include "common.sv"
 
 `define IT(NAME, T, COND=(1)) wire NAME = (inst_type == T) && COND
 
