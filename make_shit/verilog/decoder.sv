@@ -132,7 +132,7 @@ reg [2:0] op_kind;
 reg [7:0] op_kind_candidates;
 reg [3:0] op_type;
 
-always begin
+always_comb begin
     extra_op_kind = 0;
     extra_op_kind_enabled = 0;
     for(integer i = 7; i >= 0; i--) begin

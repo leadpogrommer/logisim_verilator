@@ -182,7 +182,7 @@ assign IAck = fetch && (in_irq && int_en);
 wire reset_exc = exc_triggered && fetch;
 wire double_fault = instruction == 16'h8004;
 assign critical_fault = double_fault && has_any_reason_to_fault;
-assign ucommand = status[1] || startup || (latch_int && fetch) ? 28'h8000000 : (exc_triggered ? uc_in_exception : uc_in_normal);
+assign ucommand = (status[1] || startup || (latch_int && fetch)) ? 28'h8000000 : (exc_triggered ? uc_in_exception : uc_in_normal);
 
 
 
@@ -280,7 +280,7 @@ always @(negedge input_clock) begin
 end
 
 // buses
-always begin
+always_comb begin
     // bus control
     if (ucommand[UC_WORD]) 
         if (io_phase) bus_control_out_to_bus = {data_in[7:0], bus_control_tmp};

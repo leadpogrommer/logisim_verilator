@@ -40,7 +40,7 @@ endfunction
     wire [4:0] wShiftCount = 5'd1 + {2'b0, shif_count_ni};
 
 
-    always  begin
+    always_comb  begin
         case (op_type)
             default: begin
                 wS = 0;

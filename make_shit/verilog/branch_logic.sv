@@ -14,7 +14,7 @@ module branch_logic(
     wire reverse = cccc[0];
     assign go = dcsn ^ reverse;
 
-    always begin
+    always_comb begin
         case (cccc[3:1])
             0: dcsn = Z;
             1: dcsn = C;
