@@ -142,7 +142,8 @@ reg [2:0] exc_intenral_vec;
 reg exc_latch;
 reg virtual_instruction;
 // verilator lint_off MULTIDRIVEN
-reg [15:0] instruction;
+reg [15:0] instruction_reg;
+wire [15:0] instruction;
 
 
 
@@ -173,8 +174,7 @@ assign int_en = PS[15];
 wire CUT = ucommand[UC_CUT];
 reg [2:0] phase;
 reg cut_something;
-reg not_startup;
-wire startup = !not_startup;
+reg startup;
 assign fetch = (!cut_something) && (phase == 0);
 assign exc_triggered = has_any_reason_to_fault || exc_latch;
 wire latch_int = exc_triggered || (in_irq && int_en);
@@ -203,14 +203,32 @@ wire [15:0] fetched_instruction = startup ? 16'h8200 : (latch_int ? exc_instruct
 
 
 assign dbg_fetch = fetch;
+assign instruction = fetch ? 0 : instruction_reg;
 
-// verilator lint_off MULTIDRIVEN
-/* verilator lint_off MULTIDRIVEN */
-always @(posedge fetch) begin
-    instruction <= 0;
+
+initial begin
+    clk_hold = 0;
+    clk_wait = 0;
+    clk_halt = 0;
+    clk_critical_fault = 0;
+    phase = 3'd0;
+    cut_something = 0;
+    startup = 1;
+    exc_latch = 0;
+    exc_intenral_vec = 0;
+    exc_vec = 0;
+    PC = 16'd0;
+    PS = 16'd0;
+    realSP = 16'd0;
+    io_phase = 0;
 end
 
-/* verilator lint_off MULTIDRIVEN */
+// TODO: check if this is correct
+// maybe fetch can be high for more than 1 cicle?
+// always @(posedge input_clock) begin 
+//     if (fetch) instruction <= 0;
+// end
+
 always @(negedge input_clock) begin
     clk_hold <= in_hold;
 
@@ -238,7 +256,7 @@ always @(negedge input_clock) begin
         end
 
         if (fetch) virtual_instruction <= latch_int || startup;
-        if (fetch) instruction <= fetched_instruction;
+        if (fetch) instruction_reg <= fetched_instruction;
 
         if (has_any_reason_to_fault) exc_latch <= 1;
         if (reset_exc) exc_latch <= 0;
@@ -275,7 +293,7 @@ always @(negedge input_clock) begin
         if (ucommand[UC_SP_INC]) realSP <= realSP + 2;
         if (ucommand[UC_SP_DEC]) realSP <= realSP - 2;
 
-        if (startup && CUT) not_startup <= 1;
+        if (startup && CUT) startup <= 0;
     end
 end
 
