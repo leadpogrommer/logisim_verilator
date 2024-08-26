@@ -221,6 +221,7 @@ initial begin
     PS = 16'd0;
     realSP = 16'd0;
     io_phase = 0;
+    instruction_reg = 0;
 end
 
 // TODO: check if this is correct
