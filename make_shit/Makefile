@@ -1,7 +1,11 @@
+verilog/gen_ucode_normal.sv: gen_ucode.py ucode/cdm16_decoder.def
+	python gen_ucode.py ucode/cdm16_decoder.def $@ 0
 
+verilog/gen_ucode_exc.sv: gen_ucode.py ucode/cdm16_decoder_exc.def
+	python gen_ucode.py ucode/cdm16_decoder_exc.def $@ 0x8000400
 
-build/verilog_top_%: $(shell find verilog -type f)
-	verilator -Iverilog/include -CFLAGS "-fPIC" --cc --trace --build --top-module $* -Mdir $@ $+
+build/verilog_top_%: $(shell find verilog -type f) verilog/gen_ucode_normal.sv verilog/gen_ucode_exc.sv
+	verilator -Iverilog/include -CFLAGS "-fPIC" --cc --trace --build --top-module $* -Mdir $@ $^
 
 build/%.cpp: build/verilog_top_% gen_wrapper.py
 	python gen_wrapper.py $</V$*.h verilog/$*.sv $@

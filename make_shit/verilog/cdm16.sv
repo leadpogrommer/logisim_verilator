@@ -10,8 +10,6 @@ module cdm16(
     input wire in_hold,
     input wire in_irq,
 
-    output wire [9:0] ucode_addr,
-
     // real outputs
     output wire [15:0] SP,
     output reg [15:0] PC,
@@ -31,8 +29,6 @@ module cdm16(
     output wire clk_no_inhibit,
     output reg [1:0] status,
 
-    input wire [27:0] uc_in_normal,
-    input wire [27:0] uc_in_exception,
     input wire [5:0] direct_exc_vec,
     input wire exc_trig_ext,
 
@@ -44,11 +40,17 @@ module cdm16(
 
 );
 
+
+// generated ucode
+wire [27:0] uc_in_normal;
+wire [27:0] uc_in_exception;
+wire [9:0] ucode_addr;
+gen_ucode_normal normal_ucode_inst(ucode_addr, uc_in_normal);
+gen_ucode_exc exc_ucode_inst(ucode_addr, uc_in_exception);
+
 wire [3:0] ps_flags = PS[3:0];
 reg [15:0] bus0; // TODO
 reg [15:0] bus1; // TODO
-// wire [15:0] busD; // TODO
-// reg [15:0] busD_noregs; // busD without PC or SP. hack to avoid circular combinational logic
 
 
 // decoder outputs
