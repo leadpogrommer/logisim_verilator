@@ -35,6 +35,7 @@ module cdm16(
     output wire IAck,
     input wire [5:0] int_vec,
 
+    input wire reset,
 
     output reg [15:0] regs /*!p:t,t:registers,s:20*/ [7:0]  // TODO: fix array in the middle of port list
 
@@ -145,7 +146,7 @@ reg exc_latch;
 reg virtual_instruction;
 // verilator lint_off MULTIDRIVEN
 reg [15:0] instruction_reg;
-wire [15:0] instruction;
+(* keep = "true", mark_debug = "true" *)wire [15:0] instruction;
 
 
 
@@ -201,7 +202,7 @@ wire [15:0] exc_instruction = 16'h8000 | (!exc_triggered ? {10'd0, int_vec}: (
         exc_intenral_vec == 7 ? {10'd0, exc_vec} : {13'd0, exc_intenral_vec}
     )
 ));
-wire [15:0] fetched_instruction = startup ? 16'h8200 : (latch_int ? exc_instruction: busD);
+(* keep = "true", mark_debug = "true" *)wire [15:0] fetched_instruction = startup ? 16'h8200 : (latch_int ? exc_instruction: busD);
 
 
 assign dbg_fetch = fetch;
@@ -233,70 +234,89 @@ end
 // end
 
 always @(negedge input_clock) begin
-    clk_hold <= in_hold;
+    if(reset) begin
+        clk_hold <= 0;
+        clk_wait <= 0;
+        clk_halt <= 0;
+        clk_critical_fault <= 0;
+        phase <= 3'd0;
+        cut_something <= 0;
+        startup <= 1;
+        exc_latch <= 0;
+        exc_intenral_vec <= 0;
+        exc_vec <= 0;
+        PC <= 16'd0;
+        PS <= 16'd0;
+        realSP <= 16'd0;
+        io_phase <= 0;
+        instruction_reg <= 0;
+        for(integer i = 0; i < 8; i++) regs[i] <= 0;
+    end else begin
+        clk_hold <= in_hold;
 
-    if(_wait) clk_wait <= 1;
-    if(in_irq) clk_wait <= 0;
+        if(_wait) clk_wait <= 1;
+        if(in_irq) clk_wait <= 0;
 
-    if(halt) clk_halt <= 1;
+        if(halt) clk_halt <= 1;
 
-    if(critical_fault) clk_critical_fault <= 1;
+        if(critical_fault) clk_critical_fault <= 1;
 
-    // clk_no_inhibit
-    if (clk_no_inhibit_active) begin
-        // exceptions
-        exc_trig_sp <= busD[0] && ucommand[UC_SP_LATCH]; // TODO: this is probably wrong
-        exc_trig_pc <= busD[0] && ucommand[UC_PC_LATCH]; // TODO: this is probably wrong
+        // clk_no_inhibit
+        if (clk_no_inhibit_active) begin
+            // exceptions
+            exc_trig_sp <= busD[0] && ucommand[UC_SP_LATCH]; // TODO: this is probably wrong
+            exc_trig_pc <= busD[0] && ucommand[UC_PC_LATCH]; // TODO: this is probably wrong
 
 
-        if (exc_trig_ext) exc_vec <= direct_exc_vec;
-        if (has_any_reason_to_fault) begin
-            if (latch_double_fault) exc_intenral_vec <= 4;
-            else if (exc_trig_ext) exc_intenral_vec <= 7;
-            else if (exc_trig_invalid_inst) exc_intenral_vec <= 3;
-            else if (exc_trig_pc) exc_intenral_vec <= 2;
-            else if (exc_trig_sp) exc_intenral_vec <= 1;
+            if (exc_trig_ext) exc_vec <= direct_exc_vec;
+            if (has_any_reason_to_fault) begin
+                if (latch_double_fault) exc_intenral_vec <= 4;
+                else if (exc_trig_ext) exc_intenral_vec <= 7;
+                else if (exc_trig_invalid_inst) exc_intenral_vec <= 3;
+                else if (exc_trig_pc) exc_intenral_vec <= 2;
+                else if (exc_trig_sp) exc_intenral_vec <= 1;
+            end
+
+            if (fetch) virtual_instruction <= latch_int || startup;
+            if (fetch) instruction_reg <= fetched_instruction;
+
+            if (has_any_reason_to_fault) exc_latch <= 1;
+            if (reset_exc) exc_latch <= 0;
+
+            // bus control
+            io_phase <= clk_inhibit;
+            if (clk_inhibit) bus_control_tmp <= data_in[7:0];
         end
 
-        if (fetch) virtual_instruction <= latch_int || startup;
-        if (fetch) instruction_reg <= fetched_instruction;
-
-        if (has_any_reason_to_fault) exc_latch <= 1;
-        if (reset_exc) exc_latch <= 0;
-
-        // bus control
-        io_phase <= clk_inhibit;
-        if (clk_inhibit) bus_control_tmp <= data_in[7:0];
-    end
 
 
+        if (clk_no_inhibit_active & (!clk_inhibit)) begin
+            // fething and exceptions
 
-    if (clk_no_inhibit_active & (!clk_inhibit)) begin
-        // fething and exceptions
+            if (CUT) phase <= 0;
+            else phase <= phase + 1;
 
-        if (CUT) phase <= 0;
-        else phase <= phase + 1;
+            if (CUT) cut_something <= !cut_something;
 
-        if (CUT) cut_something <= !cut_something;
+            // regs
+            if (ucommand[UC_PC_LATCH]) PC <= busD;
 
-        // regs
-        if (ucommand[UC_PC_LATCH]) PC <= busD;
+            if (ucommand[UC_SP_LATCH]) realSP <= busD;
 
-        if (ucommand[UC_SP_LATCH]) realSP <= busD;
+            if (ucommand[UC_PS_LATCH_WORD]) PS <= busD;
+            else if (ei) PS[15] <= 1;
+            else if(di) PS[15] <= 0;
+            else if(ucommand[UC_PS_LATCH_FLAGS]) PS[3:0] <= alu_out_CVZN;
 
-        if (ucommand[UC_PS_LATCH_WORD]) PS <= busD;
-        else if (ei) PS[15] <= 1;
-        else if(di) PS[15] <= 0;
-        else if(ucommand[UC_PS_LATCH_FLAGS]) PS[3:0] <= alu_out_CVZN;
+            if (ucommand[UC_RLATCH]) regs[rd] <= busD;
 
-        if (ucommand[UC_RLATCH]) regs[rd] <= busD;
+            if (ucommand[UC_PC_INC] & !pc_inc_inhibit) PC <= pc_incremented;
 
-        if (ucommand[UC_PC_INC] & !pc_inc_inhibit) PC <= pc_incremented;
+            if (ucommand[UC_SP_INC]) realSP <= realSP + 2;
+            if (ucommand[UC_SP_DEC]) realSP <= realSP - 2;
 
-        if (ucommand[UC_SP_INC]) realSP <= realSP + 2;
-        if (ucommand[UC_SP_DEC]) realSP <= realSP - 2;
-
-        if (startup && CUT) startup <= 0;
+            if (startup && CUT) startup <= 0;
+        end
     end
 end
 
