@@ -85,7 +85,7 @@ assign cdm_input_clock = clock;
 
 assign mem_addr = cdm_address[15:1];
 assign mem_en = cdm_mem;
-assign mem_write = {!cdm_read && cdm_mem && (cdm_word || cdm_address[1]), !cdm_read && cdm_mem && (cdm_word || cdm_address[0])};
+assign mem_write = {!cdm_read && cdm_mem && (cdm_word || cdm_address[0]), !cdm_read && cdm_mem && (cdm_word || !cdm_address[0])};
 
 // initial begin
 //     clk_div_counter = 0;
