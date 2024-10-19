@@ -146,6 +146,7 @@ xilinx.com:ip:axi_bram_ctrl:4.1\
 xilinx.com:ip:blk_mem_gen:8.4\
 xilinx.com:ip:proc_sys_reset:5.0\
 digilentinc.com:ip:rgb2dvi:1.4\
+xilinx.com:ip:ila:6.2\
 "
 
    set list_ips_missing ""
@@ -569,10 +570,11 @@ proc create_root_design { parentCell } {
      return 1
    }
   
-  # Create instance: blk_mem_gen_0, and set properties
-  set blk_mem_gen_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.4 blk_mem_gen_0 ]
+  # Create instance: cdm_ram_0, and set properties
+  set cdm_ram_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.4 cdm_ram_0 ]
   set_property -dict [list \
     CONFIG.Byte_Size {8} \
+    CONFIG.Fill_Remaining_Memory_Locations {true} \
     CONFIG.Memory_Type {True_Dual_Port_RAM} \
     CONFIG.Register_PortA_Output_of_Memory_Primitives {false} \
     CONFIG.Register_PortB_Output_of_Memory_Primitives {false} \
@@ -580,7 +582,7 @@ proc create_root_design { parentCell } {
     CONFIG.Write_Width_A {32} \
     CONFIG.Write_Width_B {16} \
     CONFIG.use_bram_block {Stand_Alone} \
-  ] $blk_mem_gen_0
+  ] $cdm_ram_0
 
 
   # Create instance: proc_sys_reset_0, and set properties
@@ -645,21 +647,34 @@ proc create_root_design { parentCell } {
   ] $font_rom
 
 
-  # Create instance: blk_mem_gen_1, and set properties
-  set blk_mem_gen_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.4 blk_mem_gen_1 ]
+  # Create instance: vram, and set properties
+  set vram [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.4 vram ]
   set_property -dict [list \
-    CONFIG.Byte_Size {8} \
     CONFIG.Coe_File {/home/ilya/work/cdm_clang/verilog_shit/test_message.coe} \
     CONFIG.Enable_B {Always_Enabled} \
     CONFIG.Fill_Remaining_Memory_Locations {true} \
     CONFIG.Load_Init_File {true} \
     CONFIG.Memory_Type {Simple_Dual_Port_RAM} \
+    CONFIG.Operating_Mode_A {WRITE_FIRST} \
     CONFIG.Register_PortB_Output_of_Memory_Primitives {false} \
     CONFIG.Remaining_Memory_Locations {20} \
-    CONFIG.Use_Byte_Write_Enable {true} \
+    CONFIG.Use_Byte_Write_Enable {false} \
     CONFIG.Write_Depth_A {65536} \
     CONFIG.use_bram_block {Stand_Alone} \
-  ] $blk_mem_gen_1
+  ] $vram
+
+
+  # Create instance: ila_0, and set properties
+  set ila_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:ila:6.2 ila_0 ]
+  set_property -dict [list \
+    CONFIG.C_ADV_TRIGGER {true} \
+    CONFIG.C_MONITOR_TYPE {Native} \
+    CONFIG.C_NUM_OF_PROBES {4} \
+    CONFIG.C_PROBE0_WIDTH {16} \
+    CONFIG.C_PROBE1_WIDTH {16} \
+    CONFIG.C_PROBE2_WIDTH {16} \
+    CONFIG.C_PROBE3_WIDTH {16} \
+  ] $ila_0
 
 
   # Create interface connections
@@ -677,35 +692,39 @@ proc create_root_design { parentCell } {
   connect_bd_net -net ENET0_GMII_TX_CLK_0_1 [get_bd_ports ENET0_GMII_TX_CLK_0] [get_bd_pins processing_system7_0/ENET0_GMII_TX_CLK]
   connect_bd_net -net In0_0_1 [get_bd_ports ENET0_GMII_RXD_0] [get_bd_pins xlconcat_1/In0]
   connect_bd_net -net axi_bram_ctrl_0_bram_addr_a [get_bd_pins axi_bram_ctrl_0/bram_addr_a] [get_bd_pins xlslice_1/Din]
-  connect_bd_net -net axi_bram_ctrl_0_bram_clk_a [get_bd_pins axi_bram_ctrl_0/bram_clk_a] [get_bd_pins blk_mem_gen_0/clka]
-  connect_bd_net -net axi_bram_ctrl_0_bram_en_a [get_bd_pins axi_bram_ctrl_0/bram_en_a] [get_bd_pins blk_mem_gen_0/ena]
-  connect_bd_net -net axi_bram_ctrl_0_bram_we_a [get_bd_pins axi_bram_ctrl_0/bram_we_a] [get_bd_pins blk_mem_gen_0/wea]
-  connect_bd_net -net axi_bram_ctrl_0_bram_wrdata_a [get_bd_pins axi_bram_ctrl_0/bram_wrdata_a] [get_bd_pins blk_mem_gen_0/dina]
+  connect_bd_net -net axi_bram_ctrl_0_bram_clk_a [get_bd_pins axi_bram_ctrl_0/bram_clk_a] [get_bd_pins cdm_ram_0/clka]
+  connect_bd_net -net axi_bram_ctrl_0_bram_en_a [get_bd_pins axi_bram_ctrl_0/bram_en_a] [get_bd_pins cdm_ram_0/ena]
+  connect_bd_net -net axi_bram_ctrl_0_bram_we_a [get_bd_pins axi_bram_ctrl_0/bram_we_a] [get_bd_pins cdm_ram_0/wea]
+  connect_bd_net -net axi_bram_ctrl_0_bram_wrdata_a [get_bd_pins axi_bram_ctrl_0/bram_wrdata_a] [get_bd_pins cdm_ram_0/dina]
   connect_bd_net -net axi_gpio_0_gpio_io_o [get_bd_pins axi_gpio_0/gpio_io_o] [get_bd_pins cdm16_wrapper_wrapper_0/gpio_control]
-  connect_bd_net -net blk_mem_gen_0_douta [get_bd_pins blk_mem_gen_0/douta] [get_bd_pins axi_bram_ctrl_0/bram_rddata_a]
-  connect_bd_net -net blk_mem_gen_0_doutb [get_bd_pins blk_mem_gen_0/doutb] [get_bd_pins cdm16_wrapper_wrapper_0/mem_in]
-  connect_bd_net -net blk_mem_gen_1_douta [get_bd_pins font_rom/douta] [get_bd_pins color_bar_0/char_line_data]
-  connect_bd_net -net blk_mem_gen_1_doutb [get_bd_pins blk_mem_gen_1/doutb] [get_bd_pins color_bar_0/vram_data_in]
+  connect_bd_net -net blk_mem_gen_0_douta [get_bd_pins cdm_ram_0/douta] [get_bd_pins axi_bram_ctrl_0/bram_rddata_a]
+  connect_bd_net -net blk_mem_gen_0_doutb [get_bd_pins cdm_ram_0/doutb] [get_bd_pins cdm16_wrapper_wrapper_0/mem_in]
+  connect_bd_net -net blk_mem_gen_1_douta [get_bd_pins font_rom/douta] [get_bd_pins color_bar_0/char_line_data] [get_bd_pins ila_0/probe2]
+  connect_bd_net -net blk_mem_gen_1_doutb [get_bd_pins vram/doutb] [get_bd_pins color_bar_0/vram_data_in] [get_bd_pins ila_0/probe1]
   connect_bd_net -net cdm16_wrapper_wrapper_0_gpio_data [get_bd_pins cdm16_wrapper_wrapper_0/gpio_data] [get_bd_pins axi_gpio_0/gpio2_io_i]
   connect_bd_net -net cdm16_wrapper_wrapper_0_leds_out [get_bd_pins cdm16_wrapper_wrapper_0/leds_out] [get_bd_ports leds]
-  connect_bd_net -net cdm16_wrapper_wrapper_0_mem_addr [get_bd_pins cdm16_wrapper_wrapper_0/mem_addr] [get_bd_pins blk_mem_gen_0/addrb]
-  connect_bd_net -net cdm16_wrapper_wrapper_0_mem_en [get_bd_pins cdm16_wrapper_wrapper_0/mem_en] [get_bd_pins blk_mem_gen_0/enb]
-  connect_bd_net -net cdm16_wrapper_wrapper_0_mem_out [get_bd_pins cdm16_wrapper_wrapper_0/mem_out] [get_bd_pins blk_mem_gen_0/dinb]
-  connect_bd_net -net cdm16_wrapper_wrapper_0_mem_write [get_bd_pins cdm16_wrapper_wrapper_0/mem_write] [get_bd_pins blk_mem_gen_0/web]
-  connect_bd_net -net clk_wiz_0_clk_out1 [get_bd_pins processing_system7_0/FCLK_CLK3] [get_bd_pins rgb2dvi_0/PixelClk] [get_bd_pins font_rom/clka] [get_bd_pins blk_mem_gen_1/clkb] [get_bd_pins color_bar_0/clk]
+  connect_bd_net -net cdm16_wrapper_wrapper_0_mem_addr [get_bd_pins cdm16_wrapper_wrapper_0/mem_addr] [get_bd_pins cdm_ram_0/addrb]
+  connect_bd_net -net cdm16_wrapper_wrapper_0_mem_en [get_bd_pins cdm16_wrapper_wrapper_0/mem_en] [get_bd_pins cdm_ram_0/enb]
+  connect_bd_net -net cdm16_wrapper_wrapper_0_mem_out [get_bd_pins cdm16_wrapper_wrapper_0/mem_out] [get_bd_pins cdm_ram_0/dinb]
+  connect_bd_net -net cdm16_wrapper_wrapper_0_mem_write [get_bd_pins cdm16_wrapper_wrapper_0/mem_write] [get_bd_pins cdm_ram_0/web]
+  connect_bd_net -net cdm16_wrapper_wrapper_0_vram_addr [get_bd_pins cdm16_wrapper_wrapper_0/vram_addr] [get_bd_pins vram/addra]
+  connect_bd_net -net cdm16_wrapper_wrapper_0_vram_data [get_bd_pins cdm16_wrapper_wrapper_0/vram_data] [get_bd_pins vram/dina]
+  connect_bd_net -net cdm16_wrapper_wrapper_0_vram_en [get_bd_pins cdm16_wrapper_wrapper_0/vram_en] [get_bd_pins vram/ena]
+  connect_bd_net -net cdm16_wrapper_wrapper_0_vram_wr [get_bd_pins cdm16_wrapper_wrapper_0/vram_wr] [get_bd_pins vram/wea]
+  connect_bd_net -net clk_wiz_0_clk_out1 [get_bd_pins processing_system7_0/FCLK_CLK3] [get_bd_pins rgb2dvi_0/PixelClk] [get_bd_pins font_rom/clka] [get_bd_pins vram/clkb] [get_bd_pins color_bar_0/clk] [get_bd_pins ila_0/clk]
   connect_bd_net -net color_bar_0_de [get_bd_pins color_bar_0/de] [get_bd_pins rgb2dvi_0/vid_pVDE]
-  connect_bd_net -net color_bar_0_font_ram_addr [get_bd_pins color_bar_0/font_ram_addr] [get_bd_pins font_rom/addra]
+  connect_bd_net -net color_bar_0_font_ram_addr [get_bd_pins color_bar_0/font_ram_addr] [get_bd_pins font_rom/addra] [get_bd_pins ila_0/probe3]
   connect_bd_net -net color_bar_0_hs [get_bd_pins color_bar_0/hs] [get_bd_pins rgb2dvi_0/vid_pHSync]
   connect_bd_net -net color_bar_0_rgb_b [get_bd_pins color_bar_0/rgb_b] [get_bd_pins xlconcat_0/In1]
   connect_bd_net -net color_bar_0_rgb_g [get_bd_pins color_bar_0/rgb_g] [get_bd_pins xlconcat_0/In0]
   connect_bd_net -net color_bar_0_rgb_r [get_bd_pins color_bar_0/rgb_r] [get_bd_pins xlconcat_0/In2]
-  connect_bd_net -net color_bar_0_vram_addr_in [get_bd_pins color_bar_0/vram_addr_in] [get_bd_pins blk_mem_gen_1/addrb]
+  connect_bd_net -net color_bar_0_vram_addr_in [get_bd_pins color_bar_0/vram_addr_in] [get_bd_pins vram/addrb] [get_bd_pins ila_0/probe0]
   connect_bd_net -net color_bar_0_vs [get_bd_pins color_bar_0/vs] [get_bd_pins rgb2dvi_0/vid_pVSync]
   connect_bd_net -net proc_sys_reset_0_interconnect_aresetn [get_bd_pins proc_sys_reset_0/interconnect_aresetn] [get_bd_pins smartconnect_0/aresetn]
   connect_bd_net -net proc_sys_reset_0_peripheral_aresetn [get_bd_pins proc_sys_reset_0/peripheral_aresetn] [get_bd_pins axi_gpio_0/s_axi_aresetn] [get_bd_pins axi_bram_ctrl_0/s_axi_aresetn]
   connect_bd_net -net processing_system7_0_ENET0_GMII_TXD [get_bd_pins processing_system7_0/ENET0_GMII_TXD] [get_bd_pins xlslice_0/Din]
   connect_bd_net -net processing_system7_0_ENET0_GMII_TX_EN [get_bd_pins processing_system7_0/ENET0_GMII_TX_EN] [get_bd_ports ENET0_GMII_TX_EN_0]
-  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins processing_system7_0/FCLK_CLK0] [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK] [get_bd_pins smartconnect_0/aclk] [get_bd_pins axi_gpio_0/s_axi_aclk] [get_bd_pins axi_bram_ctrl_0/s_axi_aclk] [get_bd_pins proc_sys_reset_0/slowest_sync_clk] [get_bd_pins blk_mem_gen_0/clkb] [get_bd_pins cdm16_wrapper_wrapper_0/clock]
+  connect_bd_net -net processing_system7_0_FCLK_CLK0 [get_bd_pins processing_system7_0/FCLK_CLK0] [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK] [get_bd_pins smartconnect_0/aclk] [get_bd_pins axi_gpio_0/s_axi_aclk] [get_bd_pins axi_bram_ctrl_0/s_axi_aclk] [get_bd_pins proc_sys_reset_0/slowest_sync_clk] [get_bd_pins cdm_ram_0/clkb] [get_bd_pins cdm16_wrapper_wrapper_0/clock] [get_bd_pins vram/clka]
   connect_bd_net -net processing_system7_0_FCLK_RESET0_N [get_bd_pins processing_system7_0/FCLK_RESET0_N] [get_bd_pins proc_sys_reset_0/ext_reset_in]
   connect_bd_net -net rgb2dvi_0_TMDS_Clk_n [get_bd_pins rgb2dvi_0/TMDS_Clk_n] [get_bd_ports TMDS_OUT_clk_n]
   connect_bd_net -net rgb2dvi_0_TMDS_Clk_p [get_bd_pins rgb2dvi_0/TMDS_Clk_p] [get_bd_ports TMDS_OUT_clk_p]
@@ -716,7 +735,7 @@ proc create_root_design { parentCell } {
   connect_bd_net -net xlconstant_0_dout [get_bd_pins xlconstant_0/dout] [get_bd_pins xlconcat_1/In1]
   connect_bd_net -net xlconstant_1_dout [get_bd_pins xlconstant_1/dout] [get_bd_pins rgb2dvi_0/aRst] [get_bd_pins color_bar_0/rst]
   connect_bd_net -net xlslice_0_Dout [get_bd_pins xlslice_0/Dout] [get_bd_ports ENET0_GMII_TXD_0]
-  connect_bd_net -net xlslice_1_Dout [get_bd_pins xlslice_1/Dout] [get_bd_pins blk_mem_gen_0/addra]
+  connect_bd_net -net xlslice_1_Dout [get_bd_pins xlslice_1/Dout] [get_bd_pins cdm_ram_0/addra]
 
   # Create address segments
   assign_bd_address -offset 0x41200000 -range 0x00010000 -target_address_space [get_bd_addr_spaces processing_system7_0/Data] [get_bd_addr_segs axi_bram_ctrl_0/S_AXI/Mem0] -force
