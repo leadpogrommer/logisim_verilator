@@ -212,7 +212,7 @@ assign instruction = fetch ? 0 : instruction_reg;
 initial begin
     clk_hold = 0;
     clk_wait = 0;
-    clk_halt = 0;
+    clk_halt = 1;
     clk_critical_fault = 0;
     phase = 3'd0;
     cut_something = 0;

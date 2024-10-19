@@ -12,7 +12,13 @@ module cdm16_wrapper(
     input wire [15:0] mem_in,
     output wire mem_en,
     output wire [1:0] mem_write,
-    output wire [2:0] leds_out
+    output wire [2:0] leds_out,
+
+    output wire [15:0] vram_addr,
+    output wire [15:0] vram_data,
+    output wire vram_wr,
+    output wire vram_en
+
 );
 
 wire cdm_dbg_fetch;
@@ -115,6 +121,18 @@ always_comb begin
         end
     end
 end
+
+// video
+gpu_to_bus gpu2bus(clock, vram_addr, vram_data, vram_wr, {mem_addr, 1'b0}, mem_out, mem_write[0] & mem_write[1]);
+assign vram_en = vram_wr;
+
+(* keep = "true", mark_debug = "true" *) wire [15:0] dbg_vram_addr = vram_addr;
+(* keep = "true", mark_debug = "true" *) wire [15:0] dbg_vram_data = vram_data;
+(* keep = "true", mark_debug = "true" *) wire dbg_vram_wr = vram_wr;
+(* keep = "true", mark_debug = "true" *) wire [14:0] dbg_mem_addr = mem_addr;
+(* keep = "true", mark_debug = "true" *) wire [15:0] dbg_mem_out = mem_out;
+(* keep = "true", mark_debug = "true" *) wire [1:0] dbg_mem_write = mem_write;
+
 
 
 endmodule

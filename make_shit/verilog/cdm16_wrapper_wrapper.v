@@ -11,7 +11,12 @@ module cdm16_wrapper_wrapper(
     input wire [15:0] mem_in,
     output wire mem_en,
     output wire [1:0] mem_write,
-    output wire [2:0] leds_out
+    output wire [2:0] leds_out,
+
+    output wire [15:0] vram_addr,
+    output wire [15:0] vram_data,
+    output wire vram_wr,
+    output wire vram_en
 );
 cdm16_wrapper cdm16_wrapper_inst(
     clock,
@@ -22,8 +27,12 @@ cdm16_wrapper cdm16_wrapper_inst(
     mem_in,
     mem_en,
     mem_write,
-    leds_out
+    leds_out,
+    vram_addr,
+    vram_data,
+    vram_wr,
+    vram_en
 );
 
 
-endmodule // rev 9
+endmodule // rev 15

@@ -1,6 +1,9 @@
 import requests
 import sys
 import os
+from os import getenv
+
+host = getenv('EBAZ_ADDR', 'ebaz.local')
 
 def execute_ebaz_runner(img_path: str):
     img_bytes = []
@@ -16,7 +19,7 @@ def execute_ebaz_runner(img_path: str):
                 amt = int(amt)
                 val = int(val, 16)
                 img_bytes += bytes([val]*amt)
-    resp = requests.post('http://ebaz.local/run', json={'image': img_bytes})
+    resp = requests.post(f'http://{host}/run', json={'image': img_bytes})
     resp.raise_for_status()
     j = resp.json()
     print(j['registers'])
