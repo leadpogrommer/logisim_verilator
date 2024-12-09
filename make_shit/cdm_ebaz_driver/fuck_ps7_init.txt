@@ -1,0 +1,24 @@
+╭─   ~/ides/MoreXilinx/Vivado/2023.2/bin ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+╰─❯ ./xsdb
+rlwrap: warning: your $TERM is 'xterm-256color' but rlwrap couldn't find it in the terminfo database. Expect some problems.
+
+****** System Debugger (XSDB) v2023.2
+  **** Build date : Oct 13 2023-20:26:23
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.
+
+
+xsdb% source /home/ilya/work/cdm_clang/verilog_shit/cdm_ebaz/vivado_project/vivado_project.gen/sources_1/bd/bd_top/ip/bd_top_processing_system7_0_1/ps7_init.tcl
+xsdb% connect
+tcfchan#0
+xsdb% targets
+  1  APU
+     2  ARM Cortex-A9 MPCore #0 (Running)
+     3  ARM Cortex-A9 MPCore #1 (Running)
+  4  xc7z010
+xsdb% target 1
+xsdb% ps_init
+invalid command name "ps_init"
+xsdb% ps7_init
+xsdb% ps7_init
+xsdb%                                             
