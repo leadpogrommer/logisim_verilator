@@ -144,7 +144,7 @@ check_buttons>                          # -- Begin function check_buttons
 __LBB4_5:                               # %if.end
                                         #   in Loop: Header=BB4_2 Depth=1
 	lsw	r0, -8                          # 2-byte Folded Reload
-	add	r0, 6
+	add	r0, 8
 	ssw	r0, -8                          # 2-byte Folded Spill
 	lsw	r0, -12                         # 2-byte Folded Reload
 	shra	r0, r0, 1
@@ -295,11 +295,14 @@ dsp_names>                              # @dsp_names
 	dc	206                             # 0xce
 	dc	238                             # 0xee
 	dc	182                             # 0xb6
+	dc	182                             # 0xb6
 	dc	30                              # 0x1e
 	dc	10                              # 0xa
 	dc	96                              # 0x60
+	dc	0                               # 0x0
 	dc	28                              # 0x1c
 	dc	252                             # 0xfc
+	dc	0                               # 0x0
 	dc	0                               # 0x0
 
 ### SECTION: .bss

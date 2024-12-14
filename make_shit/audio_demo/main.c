@@ -11,13 +11,12 @@ extern volatile int DSP_RUNNING;
 extern volatile int FREE_HALF;
 
 
-
 unsigned int font[] = {F_0, F_1, F_2, F_3, F_4, F_5, F_6, F_7, F_8, F_9, F_A, F_B, F_C, F_D, F_E, F_F};
 
 
 int current_dsp = 0;
 
-unsigned int dsp_names[][N_DSP] = {
+unsigned int dsp_names[][4] = {
     {F_P, F_A, F_5, F_5},
     {F_T, F_R, F_1, 0},
     // {F_H, F_1, 0, 0},
